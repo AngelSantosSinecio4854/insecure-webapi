@@ -9,6 +9,7 @@ from pathlib import Path
 from bottle import route, run, template, post, request, static_file
 from seguridad import generar_hash, verificar_password, verificar_totp
 import pyotp
+import gzip
 
 def loadDatabaseSettings(pathjs):
     pathjs = Path(pathjs)
@@ -247,7 +248,8 @@ def Imagen():
 
             id_usuario = usuario[0]
 
-            imagen_bytes = base64.b64decode(datos['data'], validate=True)
+            imagen_comprimida = base64.b64decode(datos['data'], validate=True)
+            imagen_bytes = gzip.decompress(imagen_comprimida)
 
             cursor.execute(
                 "INSERT INTO Imagen (name, ruta, id_Usuario) VALUES (%s, %s, %s)",
