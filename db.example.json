@@ -1,0 +1,6 @@
+{
+    "port": 3306,
+    "dbname": "webapps",
+    "user": "USUARIO_MARIADB",
+    "password": "CONFIGURAR_LOCALMENTE"
+}

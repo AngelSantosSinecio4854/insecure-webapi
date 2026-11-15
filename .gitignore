@@ -1,0 +1,23 @@
+# Credenciales locales
+db.json
+.env
+.env.*
+
+# Archivos generados por Python
+__pycache__/
+*.pyc
+.venv/
+
+# Entornos virtuales
+sapi/.venv/
+
+# Imágenes y archivos temporales
+img/
+tmp/
+
+# Archivos de pruebas locales
+prueba_imagen.py
+prueba_descarga.py
+# Respaldos temporales
+index.py.bak_*
+index_corregido.py
