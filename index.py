@@ -10,6 +10,8 @@ from bottle import route, run, template, post, request, static_file
 from seguridad import generar_hash, verificar_password, verificar_totp
 import pyotp
 import gzip
+import secrets
+
 
 def loadDatabaseSettings(pathjs):
     pathjs = Path(pathjs)
@@ -257,7 +259,8 @@ def Imagen():
             )
 
             id_imagen = cursor.lastrowid
-            ruta = f'img/{id_imagen}.{extension}'
+            nombre_aleatorio = secrets.token_hex(16)
+            ruta = f'img/{nombre_aleatorio}.{extension}'
 
             cursor.execute(
                 "UPDATE Imagen SET ruta = %s WHERE id = %s",
