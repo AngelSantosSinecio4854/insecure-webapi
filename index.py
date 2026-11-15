@@ -7,8 +7,8 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from bottle import route, run, template, post, request, static_file
-from seguridad import generar_hash, verificar_password
-
+from seguridad import generar_hash, verificar_password, verificar_totp
+import pyotp
 
 def loadDatabaseSettings(pathjs):
     pathjs = Path(pathjs)
@@ -73,14 +73,14 @@ def Registro():
     R = False
     try:
         password_hash = generar_hash(request.json["password"])
-
+        totp_secret = pyotp.random_base32()
         with db.cursor() as cursor:
-            sql = "INSERT INTO Usuario (uname, email, password) VALUES (%s, %s, %s)"
-
+            sql = """INSERT INTO Usuario(uname, email, password, totp_secret, totp_enabled) VALUES (%s, %s, %s, %s, %s)"""
             datos = (
                 request.json["uname"],
                 request.json["email"],
-                password_hash
+                password_hash,
+                totp_secret, 0
             )
 
             cursor.execute(sql, datos)
@@ -132,7 +132,7 @@ def Login():
     R = False
     try:
         with db.cursor() as cursor:
-            sql = "SELECT id, password FROM Usuario WHERE uname = %s"
+            sql = "SELECT id, password, totp_secret, totp_enabled FROM Usuario WHERE uname = %s"
             cursor.execute(sql, (request.json["uname"],))
             usuario = cursor.fetchone()
 
@@ -144,8 +144,13 @@ def Login():
             db.close()
             return {"R": -3}
 
-        R = [(usuario[0],)]
+        if usuario[3] == 1:
+            codigo = request.json.get("codigo")
+            if not verificar_totp(usuario[2], codigo):
+                db.close()
+                return {"R": -5}
 
+        R = [(usuario[0],)]
     except Exception as e:
         print(e)
         db.close()
@@ -360,6 +365,131 @@ def Descargar():
     except Exception as e:
         print(e)
         return {"R": -3}
+
+    finally:
+        db.close()
+@post('/ActivarTOTP')
+def ActivarTOTP():
+    datos = request.json
+
+    if not isinstance(datos, dict):
+        return {"R": -1}
+
+    token = datos.get("token")
+    codigo = datos.get("codigo")
+
+    if not isinstance(token, str) or not token:
+        return {"R": -1}
+
+    if not isinstance(codigo, str):
+        return {"R": -1}
+
+    dbcnf = loadDatabaseSettings("db.json")
+
+    try:
+        db = mysql.connector.connect(
+            host="localhost",
+            port=dbcnf["port"],
+            database=dbcnf["dbname"],
+            user=dbcnf["user"],
+            password=dbcnf["password"]
+        )
+    except Exception:
+        return {"R": -2}
+
+    try:
+        with db.cursor() as cursor:
+            cursor.execute(
+                """SELECT U.id, U.totp_secret, U.totp_enabled
+                   FROM Usuario U
+                   JOIN AccesoToken A ON A.id_Usuario = U.id
+                   WHERE A.token = %s""",
+                (token,)
+            )
+
+            usuario = cursor.fetchone()
+
+            if not usuario:
+                return {"R": -3}
+
+            id_usuario, secreto, activado = usuario
+
+            if activado == 1 or not secreto:
+                return {"R": -4}
+
+            if not verificar_totp(secreto, codigo):
+                return {"R": -5}
+
+            cursor.execute(
+                "UPDATE Usuario SET totp_enabled = 1 WHERE id = %s",
+                (id_usuario,)
+            )
+
+            db.commit()
+            return {"R": 0, "D": "TOTP activado"}
+
+    except Exception as e:
+        print(type(e).__name__)
+        db.rollback()
+        return {"R": -2}
+
+    finally:
+        db.close()
+
+@post('/ConfigurarTOTP')
+def ConfigurarTOTP():
+    datos = request.json
+
+    if not isinstance(datos, dict):
+        return {"R": -1}
+
+    token = datos.get("token")
+
+    if not isinstance(token, str) or not token:
+        return {"R": -1}
+
+    dbcnf = loadDatabaseSettings("db.json")
+
+    try:
+        db = mysql.connector.connect(
+            host="localhost",
+            port=dbcnf["port"],
+            database=dbcnf["dbname"],
+            user=dbcnf["user"],
+            password=dbcnf["password"]
+        )
+    except Exception:
+        return {"R": -2}
+
+    try:
+        with db.cursor() as cursor:
+            cursor.execute(
+                """SELECT U.email, U.totp_secret, U.totp_enabled
+                   FROM Usuario U
+                   JOIN AccesoToken A ON A.id_Usuario = U.id
+                   WHERE A.token = %s""",
+                (token,)
+            )
+
+            usuario = cursor.fetchone()
+
+            if not usuario:
+                return {"R": -3}
+
+            email, secreto, activado = usuario
+
+            if activado == 1 or not secreto:
+                return {"R": -4}
+
+            uri = pyotp.TOTP(secreto).provisioning_uri(
+                name=email,
+                issuer_name="WebAPI-R004"
+            )
+
+            return {"R": 0, "D": uri}
+
+    except Exception:
+        return {"R": -2}
 
     finally:
         db.close()

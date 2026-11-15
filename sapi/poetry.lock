@@ -126,7 +126,22 @@ gssapi = ["gssapi (==1.12.0)"]
 telemetry = ["opentelemetry-api (==1.33.1)", "opentelemetry-exporter-otlp-proto-http (==1.33.1)", "opentelemetry-sdk (==1.33.1)"]
 webauthn = ["fido2 (==1.1.2)"]
 
+[[package]]
+name = "pyotp"
+version = "2.11.2"
+description = "Python One Time Password Library"
+category = "main"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pyotp-2.11.2-py3-none-any.whl", hash = "sha256:d693ddda5c2fd2c368a034ec1ad2fbbe0d3f59d9a662ab00f41ae839a0d00474"},
+    {file = "pyotp-2.11.2.tar.gz", hash = "sha256:651926820da4adccbe9801c77bdc14558552485b1a957d3e1e842d587597cbb0"},
+]
+
+[package.extras]
+test = ["coverage", "mypy", "ruff", "wheel"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "e5a60ee1641e8ba3cd510cfdd6e56ac6f711dc97ed4f35cd003b22a07cb9bec4"
+content-hash = "49b983da9a4f20d29613a0cec805703d9fb480b182d052999c59c14921d36012"

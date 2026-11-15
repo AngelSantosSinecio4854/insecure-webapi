@@ -10,6 +10,7 @@ python = "^3.11"
 bottle = "^0.13.4"
 mysql-connector-python = "^26.10.0"
 bcrypt = "^5.0.0"
+pyotp = "^2.11.2"
 
 
 [build-system]

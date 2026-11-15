@@ -1,6 +1,6 @@
 
 import bcrypt
-
+import pyotp
 
 def generar_hash(password):
     password_bytes = password.encode("utf-8")
@@ -19,3 +19,11 @@ def verificar_password(password, hash_guardado):
 
     return bcrypt.checkpw(password_bytes, hash_bytes)
 
+def verificar_totp(secreto, codigo):
+    if not isinstance(codigo, str):
+        return False
+
+    if len(codigo) != 6 or not codigo.isdigit():
+        return False
+
+    return pyotp.TOTP(secreto).verify(codigo, valid_window=1)
